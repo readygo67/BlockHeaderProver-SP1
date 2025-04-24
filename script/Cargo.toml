@@ -17,14 +17,17 @@ path = "src/bin/vkey.rs"
 sp1-zkvm = {workspace = true}
 sp1-sdk = {workspace = true}
 sp1-prover = {workspace = true}
+sp1-stark = {workspace = true }
 serde_json = { version = "1.0", default-features = false, features = ["alloc"] }
 serde = { version = "1.0.200", default-features = false, features = ["derive"] }
 clap = { version = "4.0", features = ["derive", "env"] }
 tracing = "0.1.40"
-hex = "0.4.3"
+hex = { workspace = true }
 alloy-sol-types = { workspace = true }
 block-header-lib = { path = "../lib" }
 dotenv = "0.15.0"
-
+p3-field = "=0.2.2-succinct"
+sp1-recursion-core = {version = "4.2.0"}
+sp1-core-machine = {version = "4.2.0"}
 [build-dependencies]
 sp1-build = "4.2.0"

@@ -6,6 +6,10 @@ pub const RECURSIVE_ELF: &[u8] = include_elf!("block-header-recursive");
 
 fn main() {
     let prover = ProverClient::builder().cpu().build();
-    let (_, vk) = prover.setup(FIBONACCI_ELF);
-    println!("{}", vk.bytes32());
+    let (_, vk) = prover.setup(UNIT_ELF);
+    println!("unit vk digest: {}", vk.bytes32());
+
+    let (_, vk) = prover.setup(RECURSIVE_ELF);
+    println!("unit vk digest: {}", vk.bytes32());
+
 }

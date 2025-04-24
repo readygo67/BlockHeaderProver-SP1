@@ -26,11 +26,11 @@ pub fn main() {
 
     println!("cycle-tracker-start: double_sha256");
     let end_hash = double_sha256(header_bytes.as_slice());
-    println!(
-        "begin_hash: {:?}, end_hash: {:?} ",
-        hex::encode(begin_hash),
-        hex::encode(end_hash)
-    );
+    // println!(
+    //     "begin_hash: {:?}, end_hash: {:?} ",
+    //     hex::encode(begin_hash),
+    //     hex::encode(end_hash)
+    // );
     println!("cycle-tracker-end: double_sha256");
 
     // Encode the public values of the program.
