@@ -1,0 +1,15 @@
+[workspace]
+members = [
+    "lib",
+    "program/unit",
+     "program/recursive",
+    "script",
+]
+resolver = "2"
+
+
+[workspace.dependencies]
+sp1-zkvm = { version = "4.2.0" }
+sp1-sdk = { version ="4.2.0"}
+sp1-prover = {version ="4.2.0"}
+alloy-sol-types = "0.8"
