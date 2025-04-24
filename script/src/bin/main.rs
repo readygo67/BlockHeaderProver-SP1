@@ -81,13 +81,14 @@ fn main() {
         String::from("010000001588b0752fb18960bf8b1728964d091b638e35e3a2c9ed32991da8c300000000cf18302909e57a7687e38d109ff19d01e85fd0f5517ffe821055765193ca51da162f6f49ffff001d16a2ddc4"),
     ];
 
-    let mut compressed_proofs = Vec::new(); // 创建一个 Vec 来存放所有的 proof
-    let mut public_values = Vec::new();
+    let mut compressed_unit_proofs = Vec::new(); // 创建一个 Vec 来存放所有的 proof
+    let mut unit_public_values = Vec::new();
     for i in 0..headers.len() {
         let mut stdin = SP1Stdin::new();
         // let data = hex::decode(headers[i].clone()).unwrap();
         stdin.write(&headers[i].clone());
-        
+        tracing::info!("build {}th unit proof", i);
+
         let proof =  prover.prove_core(
             &unit_pk_d,
             unit_program.clone(),
@@ -97,15 +98,15 @@ fn main() {
         ).unwrap();
 
         let public_value = proof.public_values.to_vec().clone();
-        println!("{} public values {:#?}", i,  hex::encode(public_value.clone()));
-
-        tracing::info!("compress proof ");
+        // println!("{} public values {:#?}", i,  hex::encode(public_value.clone()));
+        tracing::info!("compress {}th unit proof", i);
         let compressed_proof = prover.compress(&unit_vk, proof, vec![], opts).unwrap();
         prover.verify_compressed(&compressed_proof, &unit_vk).unwrap();
-        println!("{} compresed proof verify success", i);
+        // println!("{} compresed proof verify success", i);
         
-        compressed_proofs.push(compressed_proof.clone());
-        public_values.push(public_value.clone());
+        compressed_unit_proofs.push(compressed_proof.clone());
+        unit_public_values.push(public_value.clone());
+        tracing::info!("verify {}th compressed unit proof success", i);
 
     }
 
@@ -119,38 +120,33 @@ fn main() {
         .try_into()
         .unwrap();
     stdin.write(&vkey_digest);
-    stdin.write(&vec![public_values[0].clone(), public_values[1].clone(), public_values[2].clone()]);
-    stdin.write_proof(compressed_proofs[0].clone(), unit_vk.vk.clone());
-    stdin.write_proof(compressed_proofs[1].clone(), unit_vk.vk.clone());
-    stdin.write_proof(compressed_proofs[2].clone(), unit_vk.vk.clone());
+    stdin.write(&vec![unit_public_values[0].clone(), unit_public_values[1].clone(), unit_public_values[2].clone()]);
+    stdin.write_proof(compressed_unit_proofs[0].clone(), unit_vk.vk.clone());
+    stdin.write_proof(compressed_unit_proofs[1].clone(), unit_vk.vk.clone());
+    stdin.write_proof(compressed_unit_proofs[2].clone(), unit_vk.vk.clone());
 
 
-    tracing::info!("proving verify program (core)");
+    tracing::info!("build recursive proof (core)");
     let recursive_proof =
         prover.prove_core(&recursive_pk_d, recursive_program, &stdin, opts, Default::default()).unwrap();
     // let public_values = verify_proof.public_values.clone();
 
-    tracing::info!("compress verify program");
-    let verify_reduce = prover.compress(
+    tracing::info!("compress recursive proof");
+    let compressed_recursive_proof = prover.compress(
         &recursive_vk,
         recursive_proof,
-        vec![compressed_proofs[0].clone(), compressed_proofs[1].clone(), compressed_proofs[2].clone()],
+        vec![compressed_unit_proofs[0].clone(), compressed_unit_proofs[1].clone(), compressed_unit_proofs[2].clone()],
         opts,
     ).unwrap();
-    let reduce_pv: &RecursionPublicValues<_> =
-        verify_reduce.proof.public_values.as_slice().borrow();
-    println!("deferred_hash: {:?}", reduce_pv.deferred_proofs_digest);
-    println!("complete: {:?}", reduce_pv.is_complete);
+    let recursive_public_value: &RecursionPublicValues<_> =
+        compressed_recursive_proof.proof.public_values.as_slice().borrow();
+    println!("deferred_hash: {:?}", recursive_public_value.deferred_proofs_digest);
+    println!("complete: {:?}", recursive_public_value.is_complete);
 
-    tracing::info!("verify verify program");
-    prover.verify_compressed(&verify_reduce, &recursive_vk).unwrap();
-
+    prover.verify_compressed(&compressed_recursive_proof, &recursive_vk).unwrap();
+    tracing::info!("verify recursive proof success");
   
-    // // Generate recursive proof of first subproof.
-    // tracing::info!("compress subproof 1");
-    // let deferred_reduce_1 = prover.compress(&keccak_vk, deferred_proof_1, vec![], opts)?;
-    // prover.verify_compressed(&deferred_reduce_1, &keccak_vk)?;
-   
+ 
 }
 
 // fn main() {
