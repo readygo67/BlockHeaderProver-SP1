@@ -149,80 +149,77 @@ fn main() {
     */
 
     
-        //build 1st recursive proof
-        let mut stdin = SP1Stdin::new();
-        let unit_vkey_digest = unit_vk.hash_babybear();
-        let unit_vkey_digest: [u32; 8] = unit_vkey_digest
-            .iter()
-            .map(|n| n.as_canonical_u32())
-            .collect::<Vec<_>>()
-            .try_into()
-            .unwrap();
+    //build 1st recursive proof
+    let mut stdin = SP1Stdin::new();
+    let unit_vkey_digest = unit_vk.hash_babybear();
+    let unit_vkey_digest: [u32; 8] = unit_vkey_digest
+        .iter()
+        .map(|n| n.as_canonical_u32())
+        .collect::<Vec<_>>()
+        .try_into()
+        .unwrap();
   
-        stdin.write(&unit_vkey_digest);
-        stdin.write(&unit_vkey_digest);
-        stdin.write(&unit_public_values[0].clone());
-        stdin.write(&unit_public_values[1].clone());
-        stdin.write_proof(compressed_unit_proofs[0].clone(), unit_vk.vk.clone());
-        stdin.write_proof(compressed_unit_proofs[1].clone(), unit_vk.vk.clone());
+    stdin.write(&unit_vkey_digest);
+    stdin.write(&unit_vkey_digest);
+    stdin.write(&unit_public_values[0].clone());
+    stdin.write(&unit_public_values[1].clone());
+    stdin.write_proof(compressed_unit_proofs[0].clone(), unit_vk.vk.clone());
+    stdin.write_proof(compressed_unit_proofs[1].clone(), unit_vk.vk.clone());
     
+    tracing::info!("build first recursive proof (core)");
+    let first_recursive_proof =
+        prover.prove_core(&recursive_pk_d, recursive_program.clone(), &stdin, opts, Default::default()).unwrap();
     
-        tracing::info!("build first recursive proof (core)");
-        let first_recursive_proof =
-            prover.prove_core(&recursive_pk_d, recursive_program.clone(), &stdin, opts, Default::default()).unwrap();
-        // let public_values = verify_proof.public_values.clone();
+    tracing::info!("compress recursive proof");
+    let first_compressed_recursive_proof = prover.compress(
+        &recursive_vk,
+        first_recursive_proof,
+        vec![compressed_unit_proofs[0].clone(), compressed_unit_proofs[1].clone()],
+        opts,
+    ).unwrap();
+    // let first_recursive_public_value: &RecursionPublicValues<_> = first_compressed_recursive_proof.proof.public_values.as_slice().borrow();
+    // tracing::info!("first_recursive_public_value {:#?}", first_recursive_public_value);
+  
+    prover.verify_compressed(&first_compressed_recursive_proof, &recursive_vk).unwrap();
+    tracing::info!("verify first recursive proof success");
     
-        tracing::info!("compress recursive proof");
-        let first_compressed_recursive_proof = prover.compress(
-            &recursive_vk,
-            first_recursive_proof,
-            vec![compressed_unit_proofs[0].clone(), compressed_unit_proofs[1].clone()],
-            opts,
+    tracing::info!("build 2nd recursive proof (core)");
+    let mut stdin = SP1Stdin::new();
+    let recursive_vkey_digest = recursive_vk.hash_babybear();
+    let recursive_vkey_digest: [u32; 8] = recursive_vkey_digest
+        .iter()
+        .map(|n| n.as_canonical_u32())
+        .collect::<Vec<_>>()
+        .try_into()
+        .unwrap();
+
+    let mut first_recursive_proof_public_value: [u8; 64] = [0; 64];
+    first_recursive_proof_public_value[0..32].copy_from_slice(&unit_public_values[0][0..32]);
+    first_recursive_proof_public_value[32..64].copy_from_slice(&unit_public_values[1][32..64]);
+    // tracing::info!("first recursive proof public value: {} ", hex::encode(first_recursive_proof_public_value));
+
+    stdin.write(&recursive_vkey_digest);
+    stdin.write(&unit_vkey_digest);
+    stdin.write(&first_recursive_proof_public_value.to_vec());
+    stdin.write(&unit_public_values[2].clone());
+    stdin.write_proof(first_compressed_recursive_proof.clone(), recursive_vk.vk.clone());
+    stdin.write_proof(compressed_unit_proofs[2].clone(), unit_vk.vk.clone());    
+
+    let second_recursive_proof =
+        prover.prove_core(&recursive_pk_d, recursive_program, &stdin, opts, Default::default()).unwrap();
+
+    tracing::info!("compress 2nd recursive proof");
+    let second_compressed_recursive_proof = prover.compress(
+        &recursive_vk,
+        second_recursive_proof,
+        vec![first_compressed_recursive_proof.clone(), compressed_unit_proofs[2].clone()],
+        opts,
         ).unwrap();
-        let first_recursive_public_value: &RecursionPublicValues<_> = first_compressed_recursive_proof.proof.public_values.as_slice().borrow();
-        tracing::info!("first_recursive_public_value {:#?}", first_recursive_public_value);
+    //let second_recursive_public_value: &RecursionPublicValues<_> = second_compressed_recursive_proof.proof.public_values.as_slice().borrow();
+    // tracing::info!("second_recursive_public_value {:#?}", second_recursive_public_value);
   
-        prover.verify_compressed(&first_compressed_recursive_proof, &recursive_vk).unwrap();
-        tracing::info!("verify first recursive proof success");
-    
-        tracing::info!("build 2nd recursive proof (core)");
-        let mut stdin = SP1Stdin::new();
-        let recursive_vkey_digest = recursive_vk.hash_babybear();
-        let recursive_vkey_digest: [u32; 8] = recursive_vkey_digest
-            .iter()
-            .map(|n| n.as_canonical_u32())
-            .collect::<Vec<_>>()
-            .try_into()
-            .unwrap();
-
-        let mut first_recursive_proof_public_value: [u8; 64] = [0; 64];
-        first_recursive_proof_public_value[0..32].copy_from_slice(&unit_public_values[0][0..32]);
-        first_recursive_proof_public_value[32..64].copy_from_slice(&unit_public_values[1][32..64]);
-        tracing::info!("first recursive proof public value: {} ", hex::encode(first_recursive_proof_public_value));
-
-        stdin.write(&recursive_vkey_digest);
-        stdin.write(&unit_vkey_digest);
-        stdin.write(&first_recursive_proof_public_value.to_vec());
-        stdin.write(&unit_public_values[2].clone());
-        stdin.write_proof(first_compressed_recursive_proof.clone(), recursive_vk.vk.clone());
-        stdin.write_proof(compressed_unit_proofs[2].clone(), unit_vk.vk.clone());    
-
-        let second_recursive_proof =
-            prover.prove_core(&recursive_pk_d, recursive_program, &stdin, opts, Default::default()).unwrap();
-        // let public_values = verify_proof.public_values.clone();
-    
-        tracing::info!("compress 2nd recursive proof");
-        let second_compressed_recursive_proof = prover.compress(
-            &recursive_vk,
-            second_recursive_proof,
-            vec![first_compressed_recursive_proof.clone(), compressed_unit_proofs[2].clone()],
-            opts,
-        ).unwrap();
-        let second_recursive_public_value: &RecursionPublicValues<_> = second_compressed_recursive_proof.proof.public_values.as_slice().borrow();
-        tracing::info!("second_recursive_public_value {:#?}", second_recursive_public_value);
-  
-        prover.verify_compressed(&second_compressed_recursive_proof, &recursive_vk).unwrap();
-        tracing::info!("verify second recursive proof success");
+    prover.verify_compressed(&second_compressed_recursive_proof, &recursive_vk).unwrap();
+    tracing::info!("verify second recursive proof success");
     
 
 }
