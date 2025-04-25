@@ -1,0 +1,12 @@
+[package]
+name = "block-header-lib"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+alloy-sol-types = { workspace = true }
+sha2 = { workspace = true }
+hex ={ workspace = true}
+
+[lints.rust]
+unexpected_cfgs = { level = "warn", check-cfg = ["cfg(test)"] }

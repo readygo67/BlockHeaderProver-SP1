@@ -1,0 +1,34 @@
+[package]
+version = "0.1.0"
+name = "block-header-script"
+edition = "2021"
+default-run = "unit"
+
+[[bin]]
+name = "unit"
+path = "src/bin/main.rs"
+
+
+[[bin]]
+name = "vkey"
+path = "src/bin/vkey.rs"
+
+[dependencies]
+sp1-zkvm = {workspace = true}
+sp1-sdk = {workspace = true}
+sp1-prover = {workspace = true}
+sp1-stark = {workspace = true }
+serde_json = { version = "1.0", default-features = false, features = ["alloc"] }
+serde = { version = "1.0.200", default-features = false, features = ["derive"] }
+clap = { version = "4.0", features = ["derive", "env"] }
+tracing = "0.1.40"
+hex = { workspace = true }
+alloy-sol-types = { workspace = true }
+block-header-lib = { path = "../lib" }
+dotenv = "0.15.0"
+p3-field = "0.2.2-succinct"
+sp1-recursion-core = {version = "4.2.0"}
+sp1-core-machine = {version = "4.2.0"}
+bincode = {workspace = true}
+[build-dependencies]
+sp1-build = "4.2.0"
